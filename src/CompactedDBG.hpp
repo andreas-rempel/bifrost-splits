@@ -149,6 +149,7 @@ struct CDBG_Build_opt {
     size_t k, g;
 
     bool build;
+    bool splits;
     bool update;
 
     bool clipTips;
@@ -161,10 +162,11 @@ struct CDBG_Build_opt {
 
     string filename_graph_in;
 
-    CDBG_Build_opt() :  nb_threads(1), k(DEFAULT_K), g(DEFAULT_G), nb_unique_kmers(0), nb_non_unique_kmers(0),
-                        nb_bits_unique_kmers_bf(14), nb_bits_non_unique_kmers_bf(14), read_chunksize(64),
-                        build(false), update(false), clipTips(false), deleteIsolated(false), useMercyKmers(false),
-                        outputGFA(true), verbose(false) {}
+    CDBG_Build_opt() : nb_threads(1), k(DEFAULT_K), g(DEFAULT_G), nb_unique_kmers(0), nb_non_unique_kmers(0),
+                       nb_bits_unique_kmers_bf(14), nb_bits_non_unique_kmers_bf(14), read_chunksize(64),
+                       build(false), splits(false), update(false), clipTips(false), deleteIsolated(false),
+                       useMercyKmers(false),
+                       outputGFA(true), verbose(false) {}
 };
 
 /** @typedef const_UnitigMap
