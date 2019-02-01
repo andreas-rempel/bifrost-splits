@@ -218,13 +218,13 @@ bool check_ProgramOptions(CCDBG_Build_opt& opt) {
             }
             else {
 
-                const string s_ext = file.substr(file.find_last_of(".") + 1);
+                const string s_ext = file.substr(file.find_last_of('.') + 1);
 
                 if ((s_ext == "txt")){
 
                     FILE* fp = fopen(file.c_str(), "r");
 
-                    if (fp != NULL){
+                    if (fp != nullptr) {
 
                         fclose(fp);
 
@@ -235,7 +235,7 @@ bool check_ProgramOptions(CCDBG_Build_opt& opt) {
 
                             fp = fopen(buffer, "r");
 
-                            if (fp == NULL) {
+                            if (fp == nullptr) {
 
                                 cerr << "Error: Could not open file " << buffer << " for reading." << endl;
                                 ret = false;
@@ -324,7 +324,7 @@ bool check_ProgramOptions(CCDBG_Build_opt& opt) {
 
     FILE* fp = fopen(out.c_str(), "w");
 
-    if (fp == NULL) {
+    if (fp == nullptr) {
 
         cerr << "Error: Could not open file for writing output graph in GFA format: " << out << "." << endl;
         ret = false;
@@ -365,7 +365,7 @@ bool check_ProgramOptions(CCDBG_Build_opt& opt) {
 
             FILE* fp = fopen(opt.outFilenameBBF.c_str(), "wb");
 
-            if (fp == NULL) {
+            if (fp == nullptr) {
 
                 cerr << "Error: Could not open Blocked Bloom filter file " << opt.outFilenameBBF << " for writing." << endl;
                 ret = false;
@@ -387,7 +387,7 @@ bool check_ProgramOptions(CCDBG_Build_opt& opt) {
 
                 FILE* fp = fopen(opt.inFilenameBBF.c_str(), "rb");
 
-                if (fp == NULL) {
+                if (fp == nullptr) {
 
                     cerr << "Error: Could not read input Blocked Bloom filter file " << opt.inFilenameBBF << "." << endl;
                     ret = false;
@@ -418,7 +418,7 @@ bool check_ProgramOptions(CCDBG_Build_opt& opt) {
 
             FILE* fp = fopen(opt.filename_graph_in.c_str(), "r");
 
-            if (fp == NULL) {
+            if (fp == nullptr) {
 
                 cerr << "Error: Could not read input graph file " << opt.filename_graph_in << "." << endl;
                 ret = false;
@@ -437,7 +437,7 @@ bool check_ProgramOptions(CCDBG_Build_opt& opt) {
 
                 FILE* fp = fopen(opt.filename_colors_in.c_str(), "rb");
 
-                if (fp == NULL) {
+                if (fp == nullptr) {
 
                     cerr << "Error: Could not read input color file " << opt.filename_colors_in << "." << endl;
                     ret = false;
@@ -452,30 +452,37 @@ bool check_ProgramOptions(CCDBG_Build_opt& opt) {
 
 struct Trie {
 
-    map<string, Trie *> node;
-    //unordered_map<string, Trie*> node;
-    size_t value = 0;
-
+    unordered_map<string, Trie *> nodes;
+    unsigned int value = 0;
 };
 
-void printTrie(Trie *trie, string path, ostream &out) {
+void pickLeaves(Trie *trie, string path, multimap<int, string, greater<int>> *leaves) {
 
     if (trie->value > 0) {
-        out << trie->value << path << endl;
+        leaves->insert(pair<int, string>(trie->value, path));
     }
 
-    while (!trie->node.empty()) {
-
-        string name = trie->node.begin()->first;
-        Trie *child = trie->node.begin()->second;
-
-        //printTrie(child, path + "\t" + name.substr(name.rfind('/')+1, name.length()), out);
-        printTrie(child, path + "\t" + name, out);
-
-        delete child;
-        trie->node.erase(name);
-
+    while (!trie->nodes.empty()) {
+        auto node = trie->nodes.begin();
+        pickLeaves(node->second, path + "\t" + node->first, leaves);
+        trie->nodes.erase(node);
     }
+
+    delete trie;
+}
+
+void printTrie(Trie *trie, ostream &out) {
+
+    auto *leaves = new multimap<int, string, greater<int>>();
+    pickLeaves(trie, "", leaves);
+
+    while (!leaves->empty()) {
+        auto leaf = leaves->begin();
+        out << leaf->first << leaf->second << endl;
+        leaves->erase(leaf);
+    }
+
+    delete leaves;
 }
 
 int main(int argc, char **argv){
@@ -495,7 +502,6 @@ int main(int argc, char **argv){
             if (opt.outputColors || opt.splits) {
 
                 ColoredCDBG<> cdbg(opt.k, opt.g);
-                Trie *trie = new Trie();
 
                 cdbg.buildGraph(opt);
                 cdbg.simplify(opt.deleteIsolated, opt.clipTips, opt.verbose);
@@ -510,6 +516,7 @@ int main(int argc, char **argv){
                         cout << "Bifrost.cpp(): outputting splits..." << endl;
                     }
 
+                    Trie *trie = new Trie();
                     ofstream file_out(opt.prefixFilenameOut.c_str()); // Open the file for output
                     ostream out(file_out.rdbuf());
 
@@ -566,10 +573,10 @@ int main(int argc, char **argv){
                                 //Output color names for that segment
                                 for (; prev_it != prev_it_end; ++prev_it) {
                                     string name = cdbg.getColorName(prev_it.getColorID());
-                                    if (subtrie->node.count(name) == 0) {
-                                        subtrie->node[name] = new Trie();
+                                    if (subtrie->nodes.count(name) == 0) {
+                                        subtrie->nodes[name] = new Trie();
                                     }
-                                    subtrie = subtrie->node[name];
+                                    subtrie = subtrie->nodes[name];
                                 }
                                 subtrie->value += len_segment;
 
@@ -584,23 +591,20 @@ int main(int argc, char **argv){
                         //Output color names for that segment
                         for (; prev_it != prev_it_end; ++prev_it) {
                             string name = cdbg.getColorName(prev_it.getColorID());
-                            if (subtrie->node.count(name) == 0) {
-                                subtrie->node[name] = new Trie();
+                            if (subtrie->nodes.count(name) == 0) {
+                                subtrie->nodes[name] = new Trie();
                             }
-                            subtrie = subtrie->node[name];
+                            subtrie = subtrie->nodes[name];
                         }
                         subtrie->value += len_segment;
 
                         len_segment = 0; // Reset segment length
 
                         delete[] uc_kmers;
-
                     }
 
-                    printTrie(trie, "", out);
-                    delete trie;
+                    printTrie(trie, out);
                 }
-
             }
             else {
 
