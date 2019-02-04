@@ -457,24 +457,45 @@ struct Trie {
 };
 
 void putNodes(Trie *trie, ColoredCDBG<> &graph,
-              UnitigColors::const_iterator it, UnitigColors::const_iterator end, unsigned int value) {
+              UnitigColors::const_iterator it, UnitigColors::const_iterator end, unsigned int weight) {
+
+    vector<string> graph_seqs = graph.getColorNames();
+    vector<string> split_seqs;
 
     auto num = distance(it, end);
-    auto max = graph.getColorNames().size();
+    auto max = graph_seqs.size();
 
     if (num == 0 || num == max) {
         return;
+    } else if (2 * num == max) {
+        if (graph_seqs.front() != graph.getColorName(it.getColorID()))
+            --max;
+        else ++max;
+    }
+
+    if (2 * num < max) {
+        for (; it != end; ++it) {
+            split_seqs.push_back(graph.getColorName(it.getColorID()));
+        }
+    } else if (2 * num > max) {
+        string name = graph.getColorName(it.getColorID());
+        for (string &seq : graph_seqs) {
+            if (it == end || seq != name) {
+                split_seqs.push_back(seq);
+            } else {
+                name = graph.getColorName((++it).getColorID());
+            }
+        }
     }
 
     Trie *subtrie = trie;
-    for (; it != end; ++it) {
-        string name = graph.getColorName(it.getColorID());
-        if (subtrie->nodes.count(name) == 0) {
-            subtrie->nodes[name] = new Trie();
+    for (string &seq : split_seqs) {
+        if (subtrie->nodes.count(seq) == 0) {
+            subtrie->nodes[seq] = new Trie();
         }
-        subtrie = subtrie->nodes[name];
+        subtrie = subtrie->nodes[seq];
     }
-    subtrie->value += value;
+    subtrie->value += weight;
 }
 
 void pickLeaves(Trie *trie, string path, multimap<int, string, greater<int>> *leaves) {
