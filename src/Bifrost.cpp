@@ -456,6 +456,27 @@ struct Trie {
     unsigned int value = 0;
 };
 
+void putNodes(Trie *trie, ColoredCDBG<> &graph,
+              UnitigColors::const_iterator it, UnitigColors::const_iterator end, unsigned int value) {
+
+    auto num = distance(it, end);
+    auto max = graph.getColorNames().size();
+
+    if (num == 0 || num == max) {
+        return;
+    }
+
+    Trie *subtrie = trie;
+    for (; it != end; ++it) {
+        string name = graph.getColorName(it.getColorID());
+        if (subtrie->nodes.count(name) == 0) {
+            subtrie->nodes[name] = new Trie();
+        }
+        subtrie = subtrie->nodes[name];
+    }
+    subtrie->value += value;
+}
+
 void pickLeaves(Trie *trie, string path, multimap<int, string, greater<int>> *leaves) {
 
     if (trie->value > 0) {
@@ -471,7 +492,7 @@ void pickLeaves(Trie *trie, string path, multimap<int, string, greater<int>> *le
     delete trie;
 }
 
-void printTrie(Trie *trie, ostream &out) {
+void printTree(Trie *trie, ostream &out) {
 
     auto *leaves = new multimap<int, string, greater<int>>();
     pickLeaves(trie, "", leaves);
@@ -566,44 +587,18 @@ int main(int argc, char **argv){
 
                             if (split) { // If there is a split
 
-                                UnitigColors::const_iterator prev_it = uc_kmers[i - 1].begin(um);
-                                UnitigColors::const_iterator prev_it_end = uc_kmers[i - 1].end();
-
-                                Trie *subtrie = trie;
-                                //Output color names for that segment
-                                for (; prev_it != prev_it_end; ++prev_it) {
-                                    string name = cdbg.getColorName(prev_it.getColorID());
-                                    if (subtrie->nodes.count(name) == 0) {
-                                        subtrie->nodes[name] = new Trie();
-                                    }
-                                    subtrie = subtrie->nodes[name];
-                                }
-                                subtrie->value += len_segment;
-
-                                len_segment = 0; // Reset segment length
+                                putNodes(trie, cdbg, uc_kmers[i - 1].begin(um), uc_kmers[i - 1].end(), len_segment);
+                                len_segment = 0; // Output color names and reset segment length
                             }
                         }
 
-                        UnitigColors::const_iterator prev_it = uc_kmers[nb_km - 1].begin(um);
-                        UnitigColors::const_iterator prev_it_end = uc_kmers[nb_km - 1].end();
-
-                        Trie *subtrie = trie;
-                        //Output color names for that segment
-                        for (; prev_it != prev_it_end; ++prev_it) {
-                            string name = cdbg.getColorName(prev_it.getColorID());
-                            if (subtrie->nodes.count(name) == 0) {
-                                subtrie->nodes[name] = new Trie();
-                            }
-                            subtrie = subtrie->nodes[name];
-                        }
-                        subtrie->value += len_segment;
-
-                        len_segment = 0; // Reset segment length
+                        putNodes(trie, cdbg, uc_kmers[nb_km - 1].begin(um), uc_kmers[nb_km - 1].end(), len_segment);
+                        len_segment = 0; // Output color names and reset segment length
 
                         delete[] uc_kmers;
                     }
 
-                    printTrie(trie, out);
+                    printTree(trie, out);
                 }
             }
             else {
