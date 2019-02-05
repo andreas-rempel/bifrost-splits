@@ -450,12 +450,27 @@ bool check_ProgramOptions(CCDBG_Build_opt& opt) {
     return ret;
 }
 
+/**
+ * This data structure represents a trie of strings.
+ * @param nodes list of children
+ * @param value weight of the node
+ * @param inverse inverse weight
+ */
 struct Trie {
 
     unordered_map<string, Trie *> nodes;
     unsigned int value = 0;
+    unsigned int inverse = 0;
 };
 
+/**
+ * This function inserts string sequences into a trie.
+ * @param trie trie to construct
+ * @param graph de bruijn graph
+ * @param it input iterator begin
+ * @param end input iterator end
+ * @param weight weight of the node
+ */
 void putNodes(Trie *trie, ColoredCDBG<> &graph,
               UnitigColors::const_iterator it, UnitigColors::const_iterator end, unsigned int weight) {
 
@@ -464,20 +479,23 @@ void putNodes(Trie *trie, ColoredCDBG<> &graph,
 
     auto num = distance(it, end);
     auto max = graph_seqs.size();
+    bool is_not_inverse;
 
     if (num == 0 || num == max) {
         return;
     } else if (2 * num == max) {
-        if (graph_seqs.front() != graph.getColorName(it.getColorID()))
-            --max;
-        else ++max;
+        if (graph_seqs.front() == graph.getColorName(it.getColorID())) {
+            ++max;
+        }
     }
 
     if (2 * num < max) {
+        is_not_inverse = true;
         for (; it != end; ++it) {
             split_seqs.push_back(graph.getColorName(it.getColorID()));
         }
-    } else if (2 * num > max) {
+    } else {
+        is_not_inverse = false;
         string name = graph.getColorName(it.getColorID());
         for (string &seq : graph_seqs) {
             if (it == end || seq != name) {
@@ -495,13 +513,25 @@ void putNodes(Trie *trie, ColoredCDBG<> &graph,
         }
         subtrie = subtrie->nodes[seq];
     }
-    subtrie->value += weight;
+    if (is_not_inverse) {
+        subtrie->value += weight;
+    } else {
+        subtrie->inverse += weight;
+    }
 }
 
+/**
+ * This function extracts string sequences from a trie.
+ * @param trie trie to traverse
+ * @param path current sequence
+ * @param leaves sorted list output
+ */
 void pickLeaves(Trie *trie, string path, multimap<int, string, greater<int>> *leaves) {
 
-    if (trie->value > 0) {
-        leaves->insert(pair<int, string>(trie->value, path));
+    if (trie->value > 0 || trie->inverse > 0) {
+        //auto weight = trie->value + trie->inverse;
+        auto weight = (unsigned int) sqrt(trie->value * trie->inverse);
+        leaves->insert(pair<int, string>(weight, path));
     }
 
     while (!trie->nodes.empty()) {
@@ -513,6 +543,11 @@ void pickLeaves(Trie *trie, string path, multimap<int, string, greater<int>> *le
     delete trie;
 }
 
+/**
+ * This function prints splits of colors from a trie.
+ * @param trie trie to traverse
+ * @param out file output stream
+ */
 void printTree(Trie *trie, ostream &out) {
 
     auto *leaves = new multimap<int, string, greater<int>>();
