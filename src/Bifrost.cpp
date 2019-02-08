@@ -510,6 +510,8 @@ void putNodes(Trie *trie, ColoredCDBG<> &graph,
         for (; it != end; ++it) {
             unitig_seqs.push_back(graph.getColorName(it.getColorID()));
         }
+        sort(graph_seqs.begin(), graph_seqs.end());
+        sort(unitig_seqs.begin(), unitig_seqs.end());
         set_difference(graph_seqs.begin(), graph_seqs.end(), unitig_seqs.begin(), unitig_seqs.end(),
                        inserter(split_seqs, split_seqs.begin()));
     }
@@ -538,8 +540,10 @@ void pickLeaves(Trie *trie, string path, multimap<int, string, greater<int>> *le
 
     if (trie->value > 0 || trie->inverse > 0) {
         //auto weight = trie->value + trie->inverse;
-        auto weight = sqrt(trie->value * trie->inverse);
-        leaves->insert(pair<int, string>(weight, path));
+        //auto weight = sqrt(trie->value * trie->inverse);
+        //leaves->insert(pair<int, string>(weight, path));
+        leaves->insert(pair<int, string>(trie->value, path));
+        leaves->insert(pair<int, string>(trie->inverse, path + "\tINVERSE"));
     }
 
     while (!trie->nodes.empty()) {
