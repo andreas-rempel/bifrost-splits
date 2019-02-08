@@ -530,7 +530,7 @@ void pickLeaves(Trie *trie, string path, multimap<int, string, greater<int>> *le
 
     if (trie->value > 0 || trie->inverse > 0) {
         //auto weight = trie->value + trie->inverse;
-        auto weight = (unsigned int) sqrt(trie->value * trie->inverse);
+        auto weight = sqrt(trie->value * trie->inverse);
         leaves->insert(pair<int, string>(weight, path));
     }
 
@@ -615,8 +615,8 @@ int main(int argc, char **argv){
                         // Update k-mer color sets from iterators
                         for (; it != it_end; ++it) uc_kmers[it.getKmerPosition()].add(um, it.getColorID());
 
-                        //size_t len_segment = 1;
-                        size_t len_segment = Kmer::k;
+                        size_t len_segment = 1;
+                        //size_t len_segment = Kmer::k;
 
                         // For each k-mer position in the current unitig
                         for (size_t i = 1; i != nb_km; ++i, ++len_segment) {
