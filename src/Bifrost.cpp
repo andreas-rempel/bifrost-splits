@@ -496,6 +496,7 @@ void putNodes(Trie *trie, ColoredCDBG<> &graph,
         }
     } else {
         is_not_inverse = false;
+        /*
         string name = graph.getColorName(it.getColorID());
         for (string &seq : graph_seqs) {
             if (it == end || seq != name) {
@@ -504,6 +505,13 @@ void putNodes(Trie *trie, ColoredCDBG<> &graph,
                 name = graph.getColorName((++it).getColorID());
             }
         }
+        */
+        vector<string> unitig_seqs;
+        for (; it != end; ++it) {
+            unitig_seqs.push_back(graph.getColorName(it.getColorID()));
+        }
+        set_difference(graph_seqs.begin(), graph_seqs.end(), unitig_seqs.begin(), unitig_seqs.end(),
+                       inserter(split_seqs, split_seqs.begin()));
     }
 
     Trie *subtrie = trie;
