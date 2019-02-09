@@ -1,5 +1,6 @@
 #include "CompactedDBG.hpp"
 #include "ColoredCDBG.hpp"
+#include "Splits.h"
 
 using namespace std;
 
@@ -450,118 +451,6 @@ bool check_ProgramOptions(CCDBG_Build_opt& opt) {
     return ret;
 }
 
-/**
- * This data structure represents a trie of colors.
- * @param nodes list of children
- * @param value weight of the node
- * @param inverse inverse weight
- */
-struct Trie {
-
-    unordered_map<string, Trie *> nodes;
-    unsigned int value = 0;
-    unsigned int inverse = 0;
-};
-
-/**
- * This function inserts the colors into the trie.
- * @param trie trie to construct
- * @param graph de bruijn graph
- * @param it input iterator begin
- * @param end input iterator end
- * @param weight weight of the node
- */
-void putNodes(Trie *trie, ColoredCDBG<> &graph,
-              UnitigColors::const_iterator it, UnitigColors::const_iterator end, unsigned int weight) {
-
-    vector<string> graph_colors = graph.getColorNames();
-    vector<string> split_colors;
-
-    auto num = distance(it, end);
-    auto max = graph_colors.size();
-    bool is_not_inverse;
-
-    if (num == 0 || num == max) {
-        return;
-    } else if (2 * num == max) {
-        if (graph_colors.front() == graph.getColorName(it.getColorID())) {
-            ++max;
-        }
-    }
-
-    if (2 * num < max) {
-        is_not_inverse = true;
-        for (; it != end; ++it) {
-            split_colors.push_back(graph.getColorName(it.getColorID()));
-        }
-    } else {
-        is_not_inverse = false;
-        string current = graph.getColorName(it.getColorID());
-        for (string &color : graph_colors) {
-            if (it == end || color != current) {
-                split_colors.push_back(color);
-            } else {
-                current = graph.getColorName((++it).getColorID());
-            }
-        }
-    }
-
-    Trie *subtrie = trie;
-    for (string &color : split_colors) {
-        if (subtrie->nodes.count(color) == 0) {
-            subtrie->nodes[color] = new Trie();
-        }
-        subtrie = subtrie->nodes[color];
-    }
-    if (is_not_inverse) {
-        subtrie->value += weight;
-    } else {
-        subtrie->inverse += weight;
-    }
-}
-
-/**
- * This function extracts the splits from the trie.
- * @param trie trie to traverse
- * @param path current trie path
- * @param splits list of splits
- */
-void pickLeaves(Trie *trie, string path, multimap<double, string, greater<double>> *splits) {
-
-    if (trie->value > 0 || trie->inverse > 0) {
-        //auto weight = trie->value + trie->inverse;
-        auto weight = sqrt(trie->value) * sqrt(trie->inverse);
-        splits->insert(pair<double, string>(weight, path));
-    }
-
-    while (!trie->nodes.empty()) {
-        auto node = trie->nodes.begin();
-        pickLeaves(node->second, path + "\t" + node->first, splits);
-        trie->nodes.erase(node);
-    }
-
-    delete trie;
-}
-
-/**
- * This function prints the splits out to a file.
- * @param trie trie to traverse
- * @param out file output stream
- */
-void printTree(Trie *trie, ostream &out) {
-
-    auto *splits = new multimap<double, string, greater<double>>();
-    pickLeaves(trie, "", splits);
-
-    while (!splits->empty()) {
-        auto split = splits->begin();
-        out << split->first << split->second << endl;
-        splits->erase(split);
-    }
-
-    delete splits;
-}
-
 int main(int argc, char **argv){
 
     if (argc < 2) PrintUsage();
@@ -593,68 +482,7 @@ int main(int argc, char **argv){
                         cout << "Bifrost.cpp(): outputting splits..." << endl;
                     }
 
-                    Trie *trie = new Trie();
-                    ofstream file_out(opt.prefixFilenameOut.c_str()); // Open the file for output
-                    ostream out(file_out.rdbuf());
-
-                    for (const auto &unitig : cdbg) { // For each unitig of the graph
-
-                        const size_t nb_km = unitig.size - Kmer::k + 1; // Number of k-mers in unitig
-
-                        UnitigColors *uc_kmers = new UnitigColors[nb_km]; // Create on color set per k-mer
-
-                        // Get all pairs (k-mer position, color) for current unitig
-                        const UnitigColors *uc_unitig = unitig.getData()->getUnitigColors(unitig);
-
-                        const UnitigMapBase um(0, 1, Kmer::k, true);
-
-                        // Iterator for pairs (k-mer position, color) for current unitig
-                        UnitigColors::const_iterator it = uc_unitig->begin(unitig);
-                        UnitigColors::const_iterator it_end = uc_unitig->end();
-
-                        // Update k-mer color sets from iterators
-                        for (; it != it_end; ++it) uc_kmers[it.getKmerPosition()].add(um, it.getColorID());
-
-                        size_t len_segment = 1;
-                        //size_t len_segment = Kmer::k;
-
-                        // For each k-mer position in the current unitig
-                        for (size_t i = 1; i != nb_km; ++i, ++len_segment) {
-
-                            // There is a split (difference of color sets) if the color sets have different sizes
-                            bool split = (uc_kmers[i].size(um) != uc_kmers[i - 1].size(um));
-
-                            if (!split) {
-
-                                UnitigColors::const_iterator curr_it = uc_kmers[i].begin(um);
-                                UnitigColors::const_iterator curr_it_end = uc_kmers[i].end();
-
-                                UnitigColors::const_iterator prev_it = uc_kmers[i - 1].begin(um);
-                                UnitigColors::const_iterator prev_it_end = uc_kmers[i - 1].end();
-
-                                for (; !split && (curr_it != curr_it_end) &&
-                                       (prev_it != prev_it_end); ++curr_it, ++prev_it) {
-
-                                    // There is a split (difference of color sets) if the colors do not match between
-                                    // 2 overlapping k-mers
-                                    if (curr_it.getColorID() != prev_it.getColorID()) split = true;
-                                }
-                            }
-
-                            if (split) { // If there is a split
-
-                                putNodes(trie, cdbg, uc_kmers[i - 1].begin(um), uc_kmers[i - 1].end(), len_segment);
-                                len_segment = 0; // Output color names and reset segment length
-                            }
-                        }
-
-                        putNodes(trie, cdbg, uc_kmers[nb_km - 1].begin(um), uc_kmers[nb_km - 1].end(), len_segment);
-                        len_segment = 0; // Output color names and reset segment length
-
-                        delete[] uc_kmers;
-                    }
-
-                    printTree(trie, out);
+                    buildTrie(cdbg, opt.prefixFilenameOut);
                 }
             }
             else {
