@@ -1,13 +1,13 @@
 #include "CompactedDBG.hpp"
 #include "ColoredCDBG.hpp"
-#include "Splits.h"
+#include "TopSplits.h"
 
 using namespace std;
 
 // use:  PrintVersion();
 // post: The version of the program has been printed to cout
 void PrintVersion() {
-    cout <<  BFG_VERSION << endl;
+    cout << BFG_VERSION << endl;
 }
 
 // use:  PrintCite();
@@ -17,70 +17,87 @@ void PrintCite() {
 }
 
 void PrintUsage() {
-
-    cout << endl << "Bifrost " << BFG_VERSION << endl << endl;
-    cout << "Highly parallel construction and indexing of colored and compacted de Bruijn graphs" << endl << endl;
-    cout << "Usage: Bifrost [COMMAND] [GENERAL_PARAMETERS] [COMMAND_PARAMETERS]" << endl << endl;
-    cout << "[COMMAND]:" << endl << endl <<
-         "   build                   Build a compacted de Bruijn graph, with or without colors" << endl <<
-         "   update                  Update a compacted (possible colored) de Bruijn graph with new sequences" << endl
-         <<
-         "   splits                  Build a compacted de Bruijn graph with colors and output splits" << endl << endl;
-    cout << "[GENERAL_PARAMETERS]:" << endl << endl;
-    cout << "   > Mandatory with required argument:" << endl << endl <<
-         "   -s, --input-seq-files    Input sequence files (FASTA/FASTQ possibly gzipped)" << endl <<
-         "                            Input sequence files can be provided as a list in a TXT file (one file per line)"
-         << endl <<
-         "                            K-mers with exactly 1 occurrence in the input sequence files will be discarded"
-         << endl <<
-         "   -r, --input-ref-files    Input reference files (FASTA/FASTQ possibly gzipped and GFA)" << endl <<
-         "                            Input reference files can be provided as a list in a TXT file (one file per line)"
-         << endl <<
-         "                            All k-mers of the input reference files are used" << endl <<
-         "   -o, --output-file        Prefix for output file(s)" << endl <<
-         endl << "   > Optional with required argument:" << endl << endl <<
-         "   -t, --threads            Number of threads (default is 1)" << endl <<
-         endl << "   > Optional with no argument:" << endl << endl <<
-         "   -i, --clip-tips          Clip tips shorter than k k-mers in length" << endl <<
-         "   -d, --del-isolated       Delete isolated contigs shorter than k k-mers in length" << endl <<
-         "   -v, --verbose            Print information messages during execution" << endl << endl;
-    cout << "[COMMAND_PARAMETERS]: build" << endl << endl;
-    cout << "   > Optional with required argument:" << endl << endl <<
-         "   -k, --kmer-length        Length of k-mers (default is 31)" << endl <<
-         "   -m, --min-length         Length of minimizers (default is 23)" << endl <<
-         //"   -n, --num-kmers          Estimated number of k-mers with 1+ occurrences in the input files (default: KmerStream estimation)" << endl <<
-         //"   -N, --num-kmers2         Estimated number of k-mers with 2+ occurrences in the input files (default: KmerStream estimation)" << endl <<
-         "   -b, --bloom-bits         Number of Bloom filter bits per k-mer with 1+ occurrences in the input files (default is 14)"
-         << endl <<
-         "   -B, --bloom-bits2        Number of Bloom filter bits per k-mer with 2+ occurrences in the input files (default is 14)"
-         << endl <<
-         "   -l, --load-mbbf          Input Blocked Bloom Filter file, skips filtering step (default is no input)"
-         << endl <<
-         "   -w, --write-mbbf         Output Blocked Bloom Filter file (default is no output)" << endl <<
-         "   -u, --chunk-size         Read chunk size per thread (default is 64)" << endl <<
-         endl << "   > Optional with no argument:" << endl << endl <<
-         "   -c, --colors             Color the compacted de Bruijn graph (default is no coloring)" << endl <<
-         "   -y, --keep-mercy         Keep low coverage k-mers connecting tips" << endl <<
-         "   -a, --fasta              Output file is in FASTA format (only sequences) instead of GFA" << endl << endl;
-    cout << "[COMMAND_PARAMETERS]: update" << endl << endl;
-    cout << "   > Mandatory with required argument:" << endl << endl <<
-         "   -g, --input-graph-file   Input graph file to update (GFA format)" << endl <<
-         endl << "   > Optional with required argument:" << endl << endl <<
-         "   -f, --input-color-file   Input color file associated with the input graph file to update" << endl <<
-         "   -k, --kmer-length        Length of k-mers (default is read from input graph file if built with Bifrost or 31)"
-         << endl <<
-         "   -m, --min-length         Length of minimizers (default is read from input graph file if built with Bifrost or 23)"
-         << endl << endl;
+    cout << endl;
+    cout << "Bifrost " << BFG_VERSION << endl;
+    cout << endl;
+    cout << "Highly parallel construction and indexing of colored and compacted de Bruijn graphs" << endl;
+    cout << endl;
+    cout << "Usage: Bifrost [COMMAND] [GENERAL_PARAMETERS] [COMMAND_PARAMETERS]" << endl;
+    cout << endl;
+    cout << "[COMMAND]:" << endl;
+    cout << endl;
+    cout << "  build                   Build a compacted de Bruijn graph, with or without colors" << endl;
+    cout << "  update                  Update a compacted (colored) de Bruijn graph with new sequences" << endl;
+    cout << "  splits                  Build a compacted de Bruijn graph with colors and output splits" << endl;
+    cout << endl;
+    cout << "[GENERAL_PARAMETERS]:" << endl;
+    cout << endl;
+    cout << "  > Mandatory with required argument:" << endl;
+    cout << endl;
+    cout << "  -s, --input-seq-files   Input sequence files (FASTA/FASTQ possibly gzipped)" << endl;
+    cout << "                          Input files can be provided as a list in a TXT file (one file per line)" << endl;
+    cout << "                          K-mers with exactly 1 occurrence in the input files will be discarded" << endl;
+    cout << "  -r, --input-ref-files   Input reference files (FASTA/FASTQ possibly gzipped and GFA)" << endl;
+    cout << "                          Input files can be provided as a list in a TXT file (one file per line)" << endl;
+    cout << "                          All k-mers of the input reference files are used" << endl;
+    cout << "  -o, --output-file       Prefix for output file(s)" << endl;
+    cout << endl;
+    cout << "  > Optional with required argument:" << endl;
+    cout << endl;
+    cout << "  -t, --threads           Number of threads (default: 1)" << endl;
+    cout << endl;
+    cout << "  > Optional with no argument:" << endl;
+    cout << endl;
+    cout << "  -i, --clip-tips         Clip tips shorter than k k-mers in length" << endl;
+    cout << "  -d, --del-isolated      Delete isolated contigs shorter than k k-mers in length" << endl;
+    cout << "  -v, --verbose           Print information messages during execution" << endl;
+    cout << endl;
+    cout << "[COMMAND_PARAMETERS]: build" << endl;
+    cout << endl;
+    cout << "  > Optional with required argument:" << endl;
+    cout << endl;
+    cout << "  -k, --kmer-length       Length of k-mers (default: 31)" << endl;
+    cout << "  -m, --min-length        Length of minimizers (default: 23)" << endl;
+    cout << "  -n, --num-kmers         Estimated number of k-mers with 1+ occurrences in the input files" << endl;
+    cout << "  -N, --num-kmers2        Estimated number of k-mers with 2+ occurrences in the input files" << endl;
+    cout << "  -b, --bloom-bits        Number of Bloom filter bits per k-mer with 1+ occurrences (default: 14)" << endl;
+    cout << "  -B, --bloom-bits2       Number of Bloom filter bits per k-mer with 2+ occurrences (default: 14)" << endl;
+    cout << "  -l, --load-mbbf         Input Blocked Bloom Filter file, skips filter step (default: no input)" << endl;
+    cout << "  -w, --write-mbbf        Output Blocked Bloom Filter file (default: no output)" << endl;
+    cout << "  -u, --chunk-size        Read chunk size per thread (default: 64)" << endl;
+    cout << endl;
+    cout << "  > Optional with no argument:" << endl;
+    cout << endl;
+    cout << "  -c, --colors            Color the compacted de Bruijn graph (default: no coloring)" << endl;
+    cout << "  -y, --keep-mercy        Keep low coverage k-mers connecting tips" << endl;
+    cout << "  -a, --fasta             Output file is in FASTA format (only sequences) instead of GFA" << endl;
+    cout << endl;
+    cout << "[COMMAND_PARAMETERS]: update" << endl;
+    cout << endl;
+    cout << "  > Mandatory with required argument:" << endl;
+    cout << endl;
+    cout << "  -g, --input-graph-file  Input graph file to update (GFA format)" << endl;
+    cout << endl;
+    cout << "  > Optional with required argument:" << endl;
+    cout << endl;
+    cout << "  -f, --input-color-file  Input color file associated with the input graph file to update" << endl;
+    cout << "  -k, --kmer-length       Length of k-mers (default: read from input graph file / 31)" << endl;
+    cout << "  -m, --min-length        Length of minimizers (default: read from input graph file / 23)" << endl;
+    cout << endl;
+    cout << "[COMMAND_PARAMETERS]: splits" << endl;
+    cout << endl;
+    cout << "  > Optional with required argument:" << endl;
+    cout << endl;
+    cout << "  -T, --top               Output the top T splits sorted by weight descending (default: all)" << endl;
+    cout << endl;
 }
 
 void parse_ProgramOptions(int argc, char **argv, CCDBG_Build_opt& opt) {
 
     int option_index = 0, c;
-
-    const char* opt_string = "s:r:g:o:t:k:m:n:N:b:B:l:w:u:f:idvcya";
+    const char *opt_string = "s:r:g:o:t:k:m:n:N:b:B:l:w:u:f:T:idvcya";
 
     static struct option long_options[] = {
-
             {"input-seq-files",  required_argument, 0, 's'},
             {"input-ref-files",  required_argument, 0, 'r'},
             {"input-graph-file", required_argument, 0, 'g'},
@@ -96,6 +113,7 @@ void parse_ProgramOptions(int argc, char **argv, CCDBG_Build_opt& opt) {
             {"write-mbbf",       required_argument, 0, 'w'},
             {"chunk-size",       required_argument, 0, 'u'},
             {"input-color-file", required_argument, 0, 'f'},
+            {"top",              required_argument, 0, 'T'},
             {"clip-tips",        no_argument,       0, 'i'},
             {"del-isolated",     no_argument,       0, 'd'},
             {"verbose",          no_argument,       0, 'v'},
@@ -108,33 +126,25 @@ void parse_ProgramOptions(int argc, char **argv, CCDBG_Build_opt& opt) {
     if (strcmp(argv[1], "splits") == 0) {
         opt.build = true;
         opt.splits = true;
-    } else if (strcmp(argv[1], "build") == 0) opt.build = true;
-    else if (strcmp(argv[1], "update") == 0) opt.update = true;
+    } else if (strcmp(argv[1], "build") == 0) {
+        opt.build = true;
+    } else if (strcmp(argv[1], "update") == 0) {
+        opt.update = true;
+    }
 
     if (opt.build || opt.update){
-
         while ((c = getopt_long(argc, argv, opt_string, long_options, &option_index)) != -1) {
-
             switch (c) {
-
-                case 's': {
-
-                    for (--optind; (optind < argc) && (*argv[optind] != '-'); ++optind){
-
+                case 's':
+                    for (--optind; (optind < argc) && (*argv[optind] != '-'); ++optind) {
                         opt.filename_seq_in.push_back(argv[optind]);
                     }
-
                     break;
-                }
-                case 'r': {
-
-                    for (--optind; (optind < argc) && (*argv[optind] != '-'); ++optind){
-
+                case 'r':
+                    for (--optind; (optind < argc) && (*argv[optind] != '-'); ++optind) {
                         opt.filename_ref_in.push_back(argv[optind]);
                     }
-
                     break;
-                }
                 case 'g':
                     opt.filename_graph_in = optarg;
                     break;
@@ -173,6 +183,9 @@ void parse_ProgramOptions(int argc, char **argv, CCDBG_Build_opt& opt) {
                     break;
                 case 'u':
                     opt.read_chunksize = atoi(optarg);
+                    break;
+                case 'T':
+                    opt.top_splits = atoi(optarg);
                     break;
                 case 'i':
                     opt.clipTips = true;
@@ -482,7 +495,7 @@ int main(int argc, char **argv){
                         cout << "Bifrost.cpp(): outputting splits..." << endl;
                     }
 
-                    buildTrie(cdbg, opt.prefixFilenameOut);
+                    searchGraph(cdbg, opt.top_splits, opt.prefixFilenameOut);
                 }
             }
             else {

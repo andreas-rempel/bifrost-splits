@@ -104,11 +104,16 @@ using namespace std;
 * @var CDBG_Build_opt::g
 * Length of g-mers, the minimizers, such that g < k (not used by CompactedDBG<U, G>::build).
 * Default is 23.
+* @var CDBG_Build_opt::top_splits
+* Number of splits that should be output sorted by weight descending. Default is 0 (all).
 * @var CDBG_Build_opt::build
 * Boolean indicating if the graph must be built. This parameter is not used by any function of
 * CompactedDBG<U, G> but is used by the Bifrost CLI. Default is false.
 * @var CDBG_Build_opt::update
 * Boolean indicating if the graph must be updated. This parameter is not used by any function of
+* CompactedDBG<U, G> but is used by the Bifrost CLI. Default is false.
+* @var CDBG_Build_opt::splits
+* Boolean indicating if the splits must be output. This parameter is not used by any function of
 * CompactedDBG<U, G> but is used by the Bifrost CLI. Default is false.
 * @var CDBG_Build_opt::clipTips
 * Clip short tips (length < 2k) of the graph (not used by CompactedDBG<U, G>::build). Default is false.
@@ -147,10 +152,11 @@ struct CDBG_Build_opt {
     // CompactedDBG<U, G>::write.
 
     size_t k, g;
+    size_t top_splits;
 
     bool build;
-    bool splits;
     bool update;
+    bool splits;
 
     bool clipTips;
     bool deleteIsolated;
@@ -164,8 +170,8 @@ struct CDBG_Build_opt {
 
     CDBG_Build_opt() : nb_threads(1), k(DEFAULT_K), g(DEFAULT_G), nb_unique_kmers(0), nb_non_unique_kmers(0),
                        nb_bits_unique_kmers_bf(14), nb_bits_non_unique_kmers_bf(14), read_chunksize(64),
-                       build(false), splits(false), update(false), clipTips(false), deleteIsolated(false),
-                       useMercyKmers(false),
+                       top_splits(0), build(false), update(false), splits(false),
+                       clipTips(false), deleteIsolated(false), useMercyKmers(false),
                        outputGFA(true), verbose(false) {}
 };
 

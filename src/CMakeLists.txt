@@ -5,8 +5,8 @@ list(REMOVE_ITEM sources Bifrost.cpp)
 
 add_definitions(-DMAX_KMER_SIZE=${MAX_KMER_SIZE})
 
-add_library(bifrost_static STATIC ${sources} ${headers} Splits.cpp Splits.h)
-add_library(bifrost_dynamic SHARED ${sources} ${headers} Splits.cpp Splits.h)
+add_library(bifrost_static STATIC ${sources} ${headers} Splits.cpp Splits.h TopTrie.cpp TopTrie.h TopSplits.cpp TopSplits.h)
+add_library(bifrost_dynamic SHARED ${sources} ${headers} Splits.cpp Splits.h TopTrie.cpp TopTrie.h TopSplits.cpp TopSplits.h)
 
 set_target_properties(bifrost_static PROPERTIES OUTPUT_NAME "bifrost")
 set_target_properties(bifrost_dynamic PROPERTIES OUTPUT_NAME "bifrost")
@@ -14,7 +14,7 @@ set_target_properties(bifrost_dynamic PROPERTIES OUTPUT_NAME "bifrost")
 target_include_directories(bifrost_static PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(bifrost_dynamic PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_executable(Bifrost Bifrost.cpp Splits.cpp Splits.h)
+add_executable(Bifrost Bifrost.cpp Splits.cpp Splits.h TopTrie.cpp TopTrie.h TopSplits.cpp TopSplits.h)
 
 #find_library(JEMALLOC_STATIC libjemalloc_pic.a)
 #if (JEMALLOC_STATIC)
